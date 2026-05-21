@@ -1,0 +1,17 @@
+{
+  "team_stickers": {
+    "count": 20,
+    "prefix": "",
+    "scope": "country"
+  },
+  "FWC": {
+    "count": 20,
+    "prefix": "FWC",
+    "scope": "global"
+  },
+  "CC": {
+    "count": 12,
+    "prefix": "CC",
+    "scope": "global"
+  }
+}

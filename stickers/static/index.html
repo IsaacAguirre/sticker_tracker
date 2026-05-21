@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sticker Collection Summary</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <h1>Sticker Collection Summary</h1>
+      <p>See totals for unique stickers, duplicates, and missing stickers.</p>
+    </header>
+
+    <section class="controls">
+      <button id="refresh-summary">Refresh summary</button>
+      <button id="go-add">Go to Add Sticker</button>
+    </section>
+
+    <section class="report-panel">
+      <div class="card">
+        <h2>Overview</h2>
+        <div id="overview-output" class="report-output">
+          <p>Loading summary...</p>
+        </div>
+        <div id="status-message" class="status"></div>
+      </div>
+
+      <div class="card">
+        <h2>Top 5 most completed</h2>
+        <div id="top-output" class="report-output"></div>
+      </div>
+
+      <div class="card">
+        <h2>Bottom 5 least completed</h2>
+        <div id="bottom-output" class="report-output"></div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Use <code>/add</code> to open the Add Sticker page.</p>
+    </footer>
+  </div>
+
+  <script src="/static/summary.js"></script>
+  <script>
+    document.getElementById('refresh-summary').addEventListener('click', () => {
+      window.location.reload();
+    });
+    document.getElementById('go-add').addEventListener('click', () => {
+      window.location.href = '/add';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "CC": {
+    "CC1": false,
+    "CC10": false,
+    "CC11": false,
+    "CC12": false,
+    "CC2": false,
+    "CC3": false,
+    "CC4": false,
+    "CC5": false,
+    "CC6": false,
+    "CC7": false,
+    "CC8": false,
+    "CC9": false
+  },
+  "FWC": {
+    "FWC1": false,
+    "FWC10": false,
+    "FWC11": false,
+    "FWC12": false,
+    "FWC13": false,
+    "FWC14": false,
+    "FWC15": false,
+    "FWC16": false,
+    "FWC17": false,
+    "FWC18": false,
+    "FWC19": false,
+    "FWC2": false,
+    "FWC20": false,
+    "FWC3": false,
+    "FWC4": false,
+    "FWC5": false,
+    "FWC6": false,
+    "FWC7": false,
+    "FWC8": false,
+    "FWC9": false
+  },
+  "inventory": "global"
+}
