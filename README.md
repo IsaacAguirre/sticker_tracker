@@ -25,12 +25,15 @@ Endpoints:
 
 * `GET /countries` — list available country codes
 * `GET /inventory/{country_code}` — report missing and found stickers for one country
-* `POST /inventory/{country_code}` — update team sticker ownership with `{"stickers": [1, 5]}` or `{"stickers": "1,5"}`
+* `POST /inventory/{country_code}` — bulk update ownership with `{"stickers": "MEX1,MEX5"}`
+* `PATCH /inventory/{country_code}/sticker` — update a single sticker's absolute count with `{"sticker_id": "MEX1", "count": 2}`
 
 ## UI
 
 Visit `http://127.0.0.1:8000/` after starting the app to use the local web interface.
 
-## Notes
-
-The API and UI both update the same per-country JSON inventory files in `country_inventory/`.
+### Features
+* **Interactive Grid**: View all stickers for a selected country in a responsive grid.
+* **Live Counters**: Use `+` and `-` buttons to update sticker counts in real-time.
+* **Visual Tracking**: Stickers are color-coded (Red: Missing, Green: Owned, Yellow: Extras) to easily identify progress and swap opportunities.
+* **Duplicate Summary**: View a detailed list of extra stickers and total counts for each country.

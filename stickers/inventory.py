@@ -105,6 +105,21 @@ def apply_stickers(inventory: Dict[str, Any], sticker_ids: Iterable[str]) -> Non
         if not found:
             raise ValueError(f"Sticker id '{sticker_id}' is invalid")
 
+def update_sticker_count(inventory: Dict[str, Any], sticker_id: str, count: int) -> None:
+    sections = [v for k, v in inventory.items() if isinstance(v, dict) and k not in ("country", "inventory")]
+    
+    if not sections:
+        raise ValueError("Inventory does not contain any sticker sections")
+
+    found = False
+    for section in sections:
+        if sticker_id in section:
+            section[sticker_id] = max(0, count)
+            found = True
+            break
+    if not found:
+        raise ValueError(f"Sticker id '{sticker_id}' is invalid")
+
 
 def load_all_inventories(folder: Path) -> Dict[str, Dict[str, Any]]:
     inventories: Dict[str, Dict[str, Any]] = {}

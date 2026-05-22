@@ -76,13 +76,79 @@ async function loadReport() {
 
   try {
     const data = await apiFetch(`/inventory/${countryCode}`);
-    reportOutput.textContent = formatReport(data);
+    renderStickerGrid(data);
     showMessage("Report loaded.", "success");
   } catch (error) {
-    reportOutput.textContent = `Error: ${error.message}`;
+    reportOutput.innerHTML = `<div class="error">Error: ${error.message}</div>`;
     showMessage("Could not load report.", "error");
   }
 }
+
+function renderStickerGrid(data) {
+  reportOutput.innerHTML = "";
+  
+  const dupEntries = Object.entries(data.duplicates || {});
+  const dupListText = dupEntries.length > 0 
+    ? dupEntries.map(([id, count]) => `<strong>${id}</strong> (${count - 1})`).join(", ") 
+    : "none";
+
+  const summary = document.createElement("div");
+  summary.className = "report-summary";
+  summary.innerHTML = `
+    <h2>${data.country_name || data.country}</h2>
+    <p>Completion: <strong>${data.completion_percentage}%</strong> (${data.counts.found} / ${data.counts.total})</p>
+    <p>Total Extras: <strong>${data.counts.total_duplicates}</strong></p>
+    <p style="font-size: 0.9em; color: #555; margin-top: 5px;">Detailed Extras (ID and quantity): ${dupListText}</p>
+  `;
+  reportOutput.appendChild(summary);
+
+  Object.entries(data.sections).forEach(([sectionName, stickers]) => {
+    const sectionHeader = document.createElement("h3");
+    sectionHeader.textContent = sectionName;
+    reportOutput.appendChild(sectionHeader);
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(120px, 1fr))";
+    grid.style.gap = "10px";
+    grid.style.padding = "10px 0";
+
+    Object.entries(stickers).forEach(([id, count]) => {
+      const card = document.createElement("div");
+      card.style.border = count > 1 ? "2px solid #fbc02d" : "1px solid #ccc";
+      card.style.padding = "10px";
+      card.style.textAlign = "center";
+      card.style.backgroundColor = count > 1 ? "#fff9c4" : (count > 0 ? "#e6fffa" : "#fff5f5");
+      card.style.borderRadius = "4px";
+      
+      card.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 5px;">${id}</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <button onclick="updateCount('${id}', ${count - 1})" style="padding: 2px 8px;">-</button>
+          <span>${count}</span>
+          <button onclick="updateCount('${id}', ${count + 1})" style="padding: 2px 8px;">+</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+    reportOutput.appendChild(grid);
+  });
+}
+
+window.updateCount = async function(stickerId, newCount) {
+  if (newCount < 0) return;
+  const countryCode = countrySelect.value;
+  try {
+    const data = await apiFetch(`/inventory/${countryCode}/sticker`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sticker_id: stickerId, count: newCount }),
+    });
+    renderStickerGrid(data);
+  } catch (error) {
+    showMessage(error.message, "error");
+  }
+};
 
 async function saveStickers() {
   const countryCode = countrySelect.value;
@@ -99,7 +165,7 @@ async function saveStickers() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    reportOutput.textContent = formatReport(data);
+    renderStickerGrid(data);
     showMessage("Stickers saved successfully.", "success");
     stickerInput.value = "";
   } catch (error) {

@@ -13,6 +13,7 @@ from inventory import (
     COUNTRY_INVENTORY_DIR,
     GLOBAL_INVENTORY_FILE,
     apply_stickers,
+    update_sticker_count,
     get_types_by_scope,
     load_country_inventory_by_code,
     load_countries,
@@ -52,6 +53,11 @@ class StickerUpdate(BaseModel):
         if not stickers:
             raise ValueError("stickers list must not be empty")
         return sorted(stickers)
+
+
+class StickerCountUpdate(BaseModel):
+    sticker_id: str
+    count: int
 
 
 def normalize_country_code(country_code: str) -> str:
@@ -146,6 +152,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
     total_count = 0
     total_duplicates_count = 0
     found_count = 0
+    sections_data = {}
 
     for type_name, stickers in inventory.items():
         if not isinstance(stickers, dict) or type_name in ("country", "inventory"):
@@ -154,6 +161,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
         if target_section and type_name != target_section:
             continue
 
+        sections_data[type_name] = stickers
         for key, value in stickers.items():
             count = int(value)
             total_count += 1
@@ -180,6 +188,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
             "total": total_count,
             "total_duplicates": total_duplicates_count,
         },
+        "sections": sections_data,
     }
 
 
@@ -332,6 +341,37 @@ def add_country_stickers(country_code: str, payload: StickerUpdate) -> dict[str,
 
     try:
         apply_stickers(inventory, payload.stickers)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    save_country_inventory(normalized_code, inventory)
+    return build_inventory_report(normalized_code, inventory)
+
+@app.patch("/inventory/{country_code}/sticker")
+def update_single_sticker(country_code: str, payload: StickerCountUpdate) -> dict[str, Any]:
+    normalized_code = normalize_country_code(country_code)
+    
+    global_map = {t.upper(): t for t in get_global_types()}
+    if normalized_code in global_map:
+        try:
+            inventory = load_global_inventory(GLOBAL_INVENTORY_FILE)
+            section_name = global_map[normalized_code]
+            update_sticker_count(inventory, payload.sticker_id, payload.count)
+            save_global_inventory(inventory)
+            return build_inventory_report(section_name, inventory, target_section=section_name)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="Global inventory file not found")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    ensure_country_exists(normalized_code)
+    try:
+        inventory = load_country_inventory_by_code(normalized_code)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Inventory file not found for {normalized_code}")
+
+    try:
+        update_sticker_count(inventory, payload.sticker_id, payload.count)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
