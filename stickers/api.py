@@ -199,7 +199,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
         },
         "sections": sections_data,
         "parallels": load_parallel_inventory(lookup_code),
-        "parallel_types": get_parallel_types(),
+        "parallel_types": get_parallel_types() if lookup_code.upper() not in [t.upper() for t in get_global_types()] else [],
     }
 
 
@@ -356,7 +356,9 @@ def add_country_stickers(country_code: str, payload: StickerUpdate) -> dict[str,
         raise HTTPException(status_code=400, detail=str(exc))
 
     save_country_inventory(normalized_code, inventory)
-    return build_inventory_report(normalized_code, inventory)
+    report = build_inventory_report(normalized_code, inventory)
+    report["country_name"] = get_country_name(normalized_code)
+    return report
 
 @app.patch("/inventory/{country_code}/sticker")
 def update_single_sticker(country_code: str, payload: StickerCountUpdate) -> dict[str, Any]:
@@ -387,6 +389,24 @@ def update_single_sticker(country_code: str, payload: StickerCountUpdate) -> dic
         raise HTTPException(status_code=400, detail=str(exc))
 
     save_country_inventory(normalized_code, inventory)
+    return build_inventory_report(normalized_code, inventory)
+
+
+@app.patch("/inventory/{country_code}/parallel")
+def update_parallel_inventory(country_code: str, payload: ParallelUpdate) -> dict[str, Any]:
+    normalized_code = normalize_country_code(country_code)
+    ensure_country_exists(normalized_code)
+
+    try:
+        update_parallel_count(normalized_code, payload.sticker_id, payload.parallel_type, payload.count)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    try:
+        inventory = load_country_inventory_by_code(normalized_code)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Inventory file not found for {normalized_code}")
+
     return build_inventory_report(normalized_code, inventory)
 
 
