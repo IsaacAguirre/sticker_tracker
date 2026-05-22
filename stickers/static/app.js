@@ -86,6 +86,7 @@ async function loadReport() {
 
 function renderStickerGrid(data) {
   reportOutput.innerHTML = "";
+  const parallelTypes = data.parallel_types || [];
   
   const dupEntries = Object.entries(data.duplicates || {});
   const dupListText = dupEntries.length > 0 
@@ -114,11 +115,16 @@ function renderStickerGrid(data) {
     grid.style.padding = "10px 0";
 
     Object.entries(stickers).forEach(([id, count]) => {
+      const stickerParallels = (data.parallels && data.parallels[id]) || {};
+      const hasParallels = Object.values(stickerParallels).some(v => v > 0);
+
       const card = document.createElement("div");
+      card.id = `sticker-${id}`;
       card.style.border = count > 1 ? "2px solid #fbc02d" : "1px solid #ccc";
       card.style.padding = "10px";
       card.style.textAlign = "center";
       card.style.backgroundColor = count > 1 ? "#fff9c4" : (count > 0 ? "#e6fffa" : "#fff5f5");
+      card.style.position = "relative";
       card.style.borderRadius = "4px";
       
       card.innerHTML = `
@@ -128,12 +134,39 @@ function renderStickerGrid(data) {
           <span>${count}</span>
           <button onclick="updateCount('${id}', ${count + 1})" style="padding: 2px 8px;">+</button>
         </div>
+        <div style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 5px;">
+          <button onclick="toggleParallels('${id}')" style="font-size: 0.8em; background: none; border: 1px solid #999; border-radius: 3px; cursor: pointer; color: ${hasParallels ? '#d32f2f' : '#666'}">
+            ${hasParallels ? '★ Parallels' : 'Parallels'}
+          </button>
+          <div id="parallels-${id}" style="display: none; margin-top: 5px; font-size: 0.85em; text-align: left;">
+            ${parallelTypes.map(type => {
+              const pCount = stickerParallels[type] || 0;
+              return `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                  <span style="color: ${type}; font-weight: bold;">${type}:</span>
+                  <div style="display: flex; gap: 4px; align-items: center;">
+                    <button onclick="updateParallelCount('${id}', '${type}', ${pCount - 1})" style="padding: 0 4px; font-size: 0.8em;">-</button>
+                    <span>${pCount}</span>
+                    <button onclick="updateParallelCount('${id}', '${type}', ${pCount + 1})" style="padding: 0 4px; font-size: 0.8em;">+</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
       `;
       grid.appendChild(card);
     });
     reportOutput.appendChild(grid);
   });
 }
+
+window.toggleParallels = function(id) {
+  const el = document.getElementById(`parallels-${id}`);
+  if (el) {
+    el.style.display = el.style.display === "none" ? "block" : "none";
+  }
+};
 
 window.updateCount = async function(stickerId, newCount) {
   if (newCount < 0) return;
@@ -145,6 +178,22 @@ window.updateCount = async function(stickerId, newCount) {
       body: JSON.stringify({ sticker_id: stickerId, count: newCount }),
     });
     renderStickerGrid(data);
+  } catch (error) {
+    showMessage(error.message, "error");
+  }
+};
+
+window.updateParallelCount = async function(stickerId, type, newCount) {
+  if (newCount < 0) return;
+  const countryCode = countrySelect.value;
+  try {
+    const data = await apiFetch(`/inventory/${countryCode}/parallel`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sticker_id: stickerId, parallel_type: type, count: newCount }),
+    });
+    renderStickerGrid(data);
+    document.getElementById(`parallels-${stickerId}`).style.display = "block";
   } catch (error) {
     showMessage(error.message, "error");
   }

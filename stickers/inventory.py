@@ -10,6 +10,11 @@ TYPES_FILE = BASE_DIR / "types.json"
 GROUPS_FILE = BASE_DIR / "groups.json"
 COUNTRY_INVENTORY_DIR = BASE_DIR / "country_inventory"
 GLOBAL_INVENTORY_FILE = COUNTRY_INVENTORY_DIR / "global_inventory.json"
+PARALLEL_INVENTORY_DIR = COUNTRY_INVENTORY_DIR / "parallels"
+PARALLEL_TYPES = ["blue", "red", "purple", "green", "gold"]
+
+def get_parallel_types() -> list[str]:
+    return PARALLEL_TYPES
 
 def save_global_inventory(inventory: Dict[str, Any]) -> None:
     save_json(GLOBAL_INVENTORY_FILE, inventory)
@@ -135,6 +140,26 @@ def load_all_inventories(folder: Path) -> Dict[str, Dict[str, Any]]:
 def load_global_inventory(path: Path) -> Dict[str, Any]:
     return load_json(path)
 
+def get_parallel_inventory_path(country_code: str) -> Path:
+    return PARALLEL_INVENTORY_DIR / f"{country_code.upper()}.json"
+
+def load_parallel_inventory(country_code: str) -> Dict[str, Dict[str, int]]:
+    path = get_parallel_inventory_path(country_code)
+    if not path.exists():
+        return {}
+    return load_json(path)
+
+def save_parallel_inventory(country_code: str, data: Dict[str, Dict[str, int]]) -> None:
+    save_json(get_parallel_inventory_path(country_code), data)
+
+def update_parallel_count(country_code: str, sticker_id: str, parallel_type: str, count: int) -> None:
+    inventory = load_parallel_inventory(country_code)
+    if sticker_id not in inventory:
+        inventory[sticker_id] = {pt: 0 for pt in PARALLEL_TYPES}
+    if parallel_type not in PARALLEL_TYPES:
+        raise ValueError(f"Invalid parallel type: {parallel_type}")
+    inventory[sticker_id][parallel_type] = max(0, count)
+    save_parallel_inventory(country_code, inventory)
 
 def summarize_missing(inventory: Dict[str, Any]) -> Dict[str, int]:
     missing: Dict[str, int] = {}

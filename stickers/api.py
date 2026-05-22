@@ -13,6 +13,9 @@ from inventory import (
     COUNTRY_INVENTORY_DIR,
     GLOBAL_INVENTORY_FILE,
     apply_stickers,
+    load_parallel_inventory,
+    update_parallel_count,
+    get_parallel_types,
     update_sticker_count,
     get_types_by_scope,
     load_country_inventory_by_code,
@@ -57,6 +60,11 @@ class StickerUpdate(BaseModel):
 
 class StickerCountUpdate(BaseModel):
     sticker_id: str
+    count: int
+
+class ParallelUpdate(BaseModel):
+    sticker_id: str
+    parallel_type: str
     count: int
 
 
@@ -153,6 +161,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
     total_duplicates_count = 0
     found_count = 0
     sections_data = {}
+    lookup_code = target_section if target_section else name
 
     for type_name, stickers in inventory.items():
         if not isinstance(stickers, dict) or type_name in ("country", "inventory"):
@@ -189,6 +198,8 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
             "total_duplicates": total_duplicates_count,
         },
         "sections": sections_data,
+        "parallels": load_parallel_inventory(lookup_code),
+        "parallel_types": get_parallel_types(),
     }
 
 
