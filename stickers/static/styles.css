@@ -103,6 +103,46 @@ button:disabled {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
 }
 
+/* Override for HTML-rendered summary content to collapse whitespace */
+.report-output .html-report {
+  white-space: normal;
+  font-family: inherit;
+  color: var(--text);
+}
+
+/* Percent tracker styles */
+.trackers-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.tracker {
+  flex: 1 1 0;
+}
+.tracker-title {
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.tracker-bar {
+  height: 14px;
+  background: #eef2ff;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.tracker-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #60a5fa);
+  width: 0%;
+  transition: width 400ms ease;
+}
+.tracker-text {
+  margin-top: 6px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
 .status {
   margin-top: 12px;
   min-height: 22px;

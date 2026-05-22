@@ -1,3 +1,4 @@
+console.log("summary.js loaded");
 const overviewOutput = document.getElementById("overview-output");
 const topOutput = document.getElementById("top-output");
 const bottomOutput = document.getElementById("bottom-output");
@@ -15,16 +16,31 @@ async function apiFetch(path, options = {}) {
 
 function renderOverview(report) {
   return `
-    Total countries tracked: ${report.country_count}
-    Total global sticker sets: ${report.global_count}
-    Total tracked inventories: ${report.total_tracked_inventories}
-    Total possible sticker IDs: ${report.total_possible_stickers}
-    Total owned sticker IDs: ${report.total_owned_sticker_ids}
-
-    Total duplicates: ${report.total_duplicates}
-    Total missing sticker IDs: ${report.total_missing_sticker_ids}
-    Missing means sticker IDs with zero copies.
-  `.trim();
+    <div class="html-report" style="line-height: 1.6;">
+      <div class="trackers-row">
+        <div class="tracker">
+          <div class="tracker-title">Trackers Complete</div>
+          <div class="tracker-bar" aria-hidden="true"><div class="tracker-fill" style="width: ${report.inventory_completion_percentage}%;"></div></div>
+          <div class="tracker-text">${report.total_inventories_completed} / ${report.total_tracked_inventories} (${report.inventory_completion_percentage}%)</div>
+        </div>
+        <div class="tracker">
+          <div class="tracker-title">Sticker Progress</div>
+          <div class="tracker-bar" aria-hidden="true"><div class="tracker-fill" style="width: ${report.overall_sticker_completion_percentage}%;"></div></div>
+          <div class="tracker-text">${report.total_owned_sticker_ids} / ${report.total_possible_stickers} (${report.overall_sticker_completion_percentage}%)</div>
+        </div>
+      </div>
+      <hr>
+      <p>Total countries tracked: ${report.country_count}</p>
+      <p>Total global sticker sets: ${report.global_count}</p>
+      <p>Total tracked inventories: ${report.total_tracked_inventories}</p>
+      <p>Total possible sticker IDs: ${report.total_possible_stickers}</p>
+      <p>Total owned sticker IDs: ${report.total_owned_sticker_ids}</p>
+      <br>
+      <p>Total duplicates: ${report.total_duplicates}</p>
+      <p>Total missing sticker IDs: ${report.total_missing_sticker_ids}</p>
+      <small><em>Missing means sticker IDs with zero copies. Duplicates count extra copies only.</em></small>
+    </div>
+  `;
 }
 
 function renderCompletionList(items) {
@@ -50,7 +66,8 @@ function renderTieNote(count, percentage) {
 async function loadSummary() {
   try {
     const data = await apiFetch("/summary");
-    overviewOutput.innerText = renderOverview(data);
+    console.log("summary data:", data);
+    overviewOutput.innerHTML = renderOverview(data);
     topOutput.innerHTML = renderCompletionList(data.top_countries) + renderTieNote(data.top_tie_count, data.top_tie_percentage);
     bottomOutput.innerHTML = renderCompletionList(data.bottom_countries) + renderTieNote(data.bottom_tie_count, data.bottom_tie_percentage);
     statusMessage.textContent = "Summary loaded.";

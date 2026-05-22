@@ -21,13 +21,15 @@ async function apiFetch(path, options = {}) {
 function formatReport(data) {
   const dupEntries = Object.entries(data.duplicates || {});
   const dupText = dupEntries.length > 0 ? dupEntries.map(([id, count]) => `${id} (x${count})`).join(", ") : "none";
+  const totalDups = data.counts.total_duplicates || 0;
   const displayName = data.country_name || data.country;
 
   return [
     `Country: ${displayName}`,
     `Completion: ${data.completion_percentage}%`,
-    `Found: ${data.counts.found}`,
+    `Unique Found: ${data.counts.found} / ${data.counts.total}`,
     `Missing: ${data.counts.missing}`,
+    `Total Duplicates (Extras): ${totalDups}`,
     "",
     `Missing: ${data.missing.join(", ") || "none"}`,
     `Duplicates: ${dupText}`,

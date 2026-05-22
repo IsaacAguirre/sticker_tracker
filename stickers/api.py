@@ -144,6 +144,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
     missing = []
     duplicates = {}
     total_count = 0
+    total_duplicates_count = 0
     found_count = 0
 
     for type_name, stickers in inventory.items():
@@ -161,6 +162,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
                 found_count += 1
                 if count > 1:
                     duplicates[key] = count
+                    total_duplicates_count += (count - 1)
             else:
                 missing.append(key)
 
@@ -176,6 +178,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
             "found": found_count,
             "missing": len(missing),
             "total": total_count,
+            "total_duplicates": total_duplicates_count,
         },
     }
 
@@ -225,7 +228,18 @@ def summary_report() -> dict[str, Any]:
     total_possible_stickers = sum(report["counts"]["total"] for report in total_reports)
     total_owned_sticker_ids = sum(report["counts"]["found"] for report in total_reports)
     total_missing_sticker_ids = sum(report["counts"]["missing"] for report in total_reports)
-    total_duplicates = sum(sum(report["duplicates"].values()) for report in total_reports)
+    total_duplicates = sum(report["counts"].get("total_duplicates", 0) for report in total_reports)
+
+    # Calculate global completion stats
+    total_inventories_completed = sum(
+        1 for report in total_reports if report["counts"]["found"] == report["counts"]["total"]
+    )
+    inventory_completion_percentage = (
+        round((total_inventories_completed / len(total_reports) * 100), 2) if total_reports else 0
+    )
+    overall_sticker_completion_percentage = (
+        round((total_owned_sticker_ids / total_possible_stickers * 100), 2) if total_possible_stickers > 0 else 0
+    )
 
     sorted_desc = sorted(
         country_reports,
@@ -246,6 +260,9 @@ def summary_report() -> dict[str, Any]:
         "total_possible_stickers": total_possible_stickers,
         "total_owned_sticker_ids": total_owned_sticker_ids,
         "total_duplicates": total_duplicates,
+        "total_inventories_completed": total_inventories_completed,
+        "inventory_completion_percentage": inventory_completion_percentage,
+        "overall_sticker_completion_percentage": overall_sticker_completion_percentage,
         "total_missing_sticker_ids": total_missing_sticker_ids,
         "top_countries": top_countries,
         "top_tie_count": top_tie_count,
