@@ -91,7 +91,7 @@ function renderStickerGrid(data) {
   
   const dupEntries = Object.entries(data.duplicates || {});
   const dupListText = dupEntries.length > 0 
-    ? dupEntries.map(([id, count]) => `<strong>${id}</strong> (${count - 1})`).join(", ") 
+    ? dupEntries.map(([id, count]) => `<strong>${id}</strong> (${count})`).join(", ") 
     : "none";
 
   const summary = document.createElement("div");

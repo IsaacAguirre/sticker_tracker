@@ -178,7 +178,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
                 found.append(key)
                 found_count += 1
                 if count > 1:
-                    duplicates[key] = count
+                    duplicates[key] = (count - 1)
                     total_duplicates_count += (count - 1)
             else:
                 missing.append(key)
