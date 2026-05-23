@@ -39,14 +39,15 @@ p {
   margin: 0;
 }
 
-.controls,
 .report-panel {
   display: grid;
   gap: 16px;
 }
 
 .controls {
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
   align-items: end;
 }
 

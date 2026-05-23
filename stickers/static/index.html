@@ -16,6 +16,7 @@
     <section class="controls">
       <button id="refresh-summary">Refresh summary</button>
       <button id="go-add">Go to Add Sticker</button>
+      <button id="go-reports">Reports</button>
     </section>
 
     <section class="report-panel">
@@ -50,6 +51,9 @@
     });
     document.getElementById('go-add').addEventListener('click', () => {
       window.location.href = '/add';
+    });
+    document.getElementById('go-reports').addEventListener('click', () => {
+      window.location.href = '/reports';
     });
   </script>
 </body>

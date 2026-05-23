@@ -410,6 +410,81 @@ def update_parallel_inventory(country_code: str, payload: ParallelUpdate) -> dic
     return build_inventory_report(normalized_code, inventory)
 
 
+@app.get("/reports", response_class=HTMLResponse)
+def reports_page() -> HTMLResponse:
+    reports_path = STATIC_DIR / "reports.html"
+    if not reports_path.exists():
+        raise HTTPException(status_code=500, detail="Reports page not found")
+    return HTMLResponse(reports_path.read_text(encoding="utf-8"))
+
+
+@app.get("/reports/duplicates")
+def get_duplicates_report() -> list[dict[str, Any]]:
+    all_groups = list_groups()["groups"]
+    country_names = load_country_names()
+    global_inv = None
+    try:
+        global_inv = load_global_inventory(GLOBAL_INVENTORY_FILE)
+    except FileNotFoundError:
+        pass
+
+    results = []
+    for group_name, codes in all_groups.items():
+        entries = []
+        for code in codes:
+            if code in ["FWC", "CC"]:
+                if global_inv:
+                    report = build_inventory_report(code, global_inv, target_section=code)
+                    if report["duplicates"]:
+                        entries.append({
+                            "name": code,
+                            "code": code,
+                            "duplicates": report["duplicates"]
+                        })
+            else:
+                try:
+                    inv = load_country_inventory_by_code(code)
+                    report = build_inventory_report(code, inv)
+                    if report["duplicates"]:
+                        entries.append({
+                            "name": country_names.get(code, code),
+                            "code": code,
+                            "duplicates": report["duplicates"]
+                        })
+                except FileNotFoundError:
+                    continue
+        if entries:
+            results.append({"group": group_name, "entries": entries})
+    return results
+
+
+@app.get("/reports/parallels")
+def get_parallels_report() -> list[dict[str, Any]]:
+    all_groups = list_groups()["groups"]
+    country_names = load_country_names()
+    results = []
+    for group_name, codes in all_groups.items():
+        entries = []
+        for code in codes:
+            if code in ["FWC", "CC"]:
+                continue
+            p_inv = load_parallel_inventory(code)
+            valid_p = {}
+            for sid, types in p_inv.items():
+                found_types = {t: c for t, c in types.items() if c > 0}
+                if found_types:
+                    valid_p[sid] = found_types
+            if valid_p:
+                entries.append({
+                    "name": country_names.get(code, code),
+                    "code": code,
+                    "parallels": valid_p
+                })
+        if entries:
+            results.append({"group": group_name, "entries": entries})
+    return results
+
+
 @app.get("/", response_class=HTMLResponse)
 def root() -> HTMLResponse:
     index_path = STATIC_DIR / "index.html"
