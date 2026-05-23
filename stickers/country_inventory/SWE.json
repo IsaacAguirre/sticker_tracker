@@ -2,11 +2,11 @@
   "country": "SWE",
   "team_stickers": {
     "1": false,
-    "10": false,
+    "10": 1,
     "11": false,
     "12": false,
     "13": 1,
-    "14": 1,
+    "14": 2,
     "15": false,
     "16": false,
     "17": 1,

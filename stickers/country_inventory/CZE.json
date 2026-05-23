@@ -2,7 +2,7 @@
   "country": "CZE",
   "team_stickers": {
     "1": false,
-    "10": 1,
+    "10": 2,
     "11": 1,
     "12": 1,
     "13": false,
@@ -12,13 +12,13 @@
     "17": false,
     "18": false,
     "19": 1,
-    "2": false,
+    "2": 1,
     "20": false,
     "3": false,
     "4": false,
     "5": 1,
     "6": 1,
-    "7": false,
+    "7": 1,
     "8": false,
     "9": 1
   }

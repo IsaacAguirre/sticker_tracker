@@ -1,7 +1,7 @@
 {
   "country": "BIH",
   "team_stickers": {
-    "1": false,
+    "1": 1,
     "10": false,
     "11": 1,
     "12": 1,
@@ -11,7 +11,7 @@
     "16": false,
     "17": false,
     "18": 1,
-    "19": false,
+    "19": 1,
     "2": false,
     "20": false,
     "3": 2,

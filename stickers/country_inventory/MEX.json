@@ -3,10 +3,10 @@
   "team_stickers": {
     "1": false,
     "10": false,
-    "11": false,
+    "11": 1,
     "12": false,
     "13": 0,
-    "14": 1,
+    "14": 2,
     "15": 1,
     "16": false,
     "17": false,
