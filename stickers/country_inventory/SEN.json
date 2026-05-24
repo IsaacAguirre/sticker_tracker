@@ -1,7 +1,7 @@
 {
   "country": "SEN",
   "team_stickers": {
-    "1": false,
+    "1": 1,
     "10": 2,
     "11": false,
     "12": false,
@@ -16,7 +16,7 @@
     "20": false,
     "3": false,
     "4": false,
-    "5": false,
+    "5": 1,
     "6": false,
     "7": false,
     "8": false,

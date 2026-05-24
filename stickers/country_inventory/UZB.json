@@ -1,7 +1,7 @@
 {
   "country": "UZB",
   "team_stickers": {
-    "1": false,
+    "1": 1,
     "10": false,
     "11": false,
     "12": false,
@@ -9,7 +9,7 @@
     "14": false,
     "15": false,
     "16": 1,
-    "17": false,
+    "17": 1,
     "18": false,
     "19": false,
     "2": false,

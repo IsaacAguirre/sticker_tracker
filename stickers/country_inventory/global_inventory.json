@@ -14,7 +14,7 @@
     "CC9": false
   },
   "FWC": {
-    "FWC1": false,
+    "FWC1": 1,
     "FWC10": false,
     "FWC11": false,
     "FWC12": false,
@@ -22,8 +22,8 @@
     "FWC14": false,
     "FWC15": false,
     "FWC16": false,
-    "FWC17": false,
-    "FWC18": false,
+    "FWC17": 1,
+    "FWC18": 1,
     "FWC19": false,
     "FWC2": 1,
     "FWC20": false,
