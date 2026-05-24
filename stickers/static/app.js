@@ -87,6 +87,7 @@ async function loadReport() {
 
 function renderStickerGrid(data) {
   reportOutput.innerHTML = "";
+  reportOutput.classList.add("html-report");
   const parallelTypes = data.parallel_types || [];
   
   const dupEntries = Object.entries(data.duplicates || {});
@@ -96,12 +97,11 @@ function renderStickerGrid(data) {
 
   const summary = document.createElement("div");
   summary.className = "report-summary";
-  summary.innerHTML = `
-    <h2>${data.country_name || data.country}</h2>
-    <p>Completion: <strong>${data.completion_percentage}%</strong> (${data.counts.found} / ${data.counts.total})</p>
-    <p>Total Extras: <strong>${data.counts.total_duplicates}</strong></p>
-    <p style="font-size: 0.9em; color: #555; margin-top: 5px;">Detailed Extras (ID and quantity): ${dupListText}</p>
-  `;
+  const summaryHtml = `
+    <h2 style="margin: 0; font-size: 1.15rem; display: inline-block; vertical-align: middle; margin-right: 12px;">${data.country_name || data.country}</h2>
+    <span style="font-size: 0.9rem; vertical-align: middle;">Completion: <strong>${data.completion_percentage}%</strong> (${data.counts.found}/${data.counts.total}) | Extras: <strong>${data.counts.total_duplicates}</strong></span>
+    <p style="font-size: 0.85rem; color: #555; margin: 2px 0 0;">Detailed Extras: ${dupListText}</p>`.replace(/\n\s+/g, ' ');
+  summary.innerHTML = summaryHtml;
   reportOutput.appendChild(summary);
 
   Object.entries(data.sections).forEach(([sectionName, stickers]) => {
@@ -110,10 +110,7 @@ function renderStickerGrid(data) {
     reportOutput.appendChild(sectionHeader);
 
     const grid = document.createElement("div");
-    grid.style.display = "grid";
-    grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(120px, 1fr))";
-    grid.style.gap = "10px";
-    grid.style.padding = "10px 0";
+    grid.className = "sticker-grid";
 
     Object.entries(stickers).forEach(([id, count]) => {
       const stickerParallels = (data.parallels && data.parallels[id]) || {};
@@ -121,36 +118,33 @@ function renderStickerGrid(data) {
 
       const card = document.createElement("div");
       card.id = `sticker-${id}`;
-      card.style.border = count > 1 ? "2px solid #fbc02d" : "1px solid #ccc";
-      card.style.padding = "10px";
-      card.style.textAlign = "center";
-      card.style.backgroundColor = count > 1 ? "#fff9c4" : (count > 0 ? "#e6fffa" : "#fff5f5");
-      card.style.position = "relative";
-      card.style.borderRadius = "4px";
-      
+      card.className = "sticker-card";
+      if (count > 1) card.classList.add("extra");
+      else if (count > 0) card.classList.add("owned");
+
       const isExpanded = expandedParallelId === id;
       card.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 5px;">${id}</div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <button onclick="updateCount('${id}', ${count - 1})" style="padding: 2px 8px;">-</button>
+        <div class="id-label">${id}</div>
+        <div class="card-actions" style="margin-bottom: 2px;">
+          <button onclick="updateCount('${id}', ${count - 1})" style="padding: 1px 6px;">-</button>
           <span>${count}</span>
-          <button onclick="updateCount('${id}', ${count + 1})" style="padding: 2px 8px;">+</button>
+          <button onclick="updateCount('${id}', ${count + 1})" style="padding: 1px 6px;">+</button>
         </div>
         ${parallelTypes.length > 0 ? `
-          <div style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 5px;">
-            <button onclick="toggleParallels('${id}')" style="font-size: 0.8em; background: none; border: 1px solid #999; border-radius: 3px; cursor: pointer; color: ${hasParallels ? '#d32f2f' : '#666'}">
+          <div style="margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 4px;">
+            <button onclick="toggleParallels('${id}')" style="font-size: 0.75rem; padding: 2px 6px; background: none; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; color: ${hasParallels ? '#d32f2f' : '#777'}">
               ${hasParallels ? '★ Parallels' : 'Parallels'}
             </button>
-          <div id="parallels-${id}" style="display: ${isExpanded ? 'block' : 'none'}; margin-top: 5px; font-size: 0.85em; text-align: left;">
+          <div id="parallels-${id}" style="display: ${isExpanded ? 'block' : 'none'}; margin-top: 6px; font-size: 0.8rem; text-align: left;">
               ${parallelTypes.map(type => {
                 const pCount = stickerParallels[type] || 0;
                 return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                     <span style="color: ${type}; font-weight: bold;">${type}:</span>
                     <div style="display: flex; gap: 4px; align-items: center;">
-                      <button onclick="updateParallelCount('${id}', '${type}', ${pCount - 1})" style="padding: 0 4px; font-size: 0.8em;">-</button>
+                      <button onclick="updateParallelCount('${id}', '${type}', ${pCount - 1})" style="padding: 0 5px; font-size: 0.85rem; line-height: 1;">-</button>
                       <span>${pCount}</span>
-                      <button onclick="updateParallelCount('${id}', '${type}', ${pCount + 1})" style="padding: 0 4px; font-size: 0.8em;">+</button>
+                      <button onclick="updateParallelCount('${id}', '${type}', ${pCount + 1})" style="padding: 0 5px; font-size: 0.85rem; line-height: 1;">+</button>
                     </div>
                   </div>
                 `;

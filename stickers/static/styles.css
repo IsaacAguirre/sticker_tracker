@@ -95,20 +95,80 @@ button:disabled {
 }
 
 .report-output {
-  margin-top: 12px;
-  padding: 16px;
+  margin-top: 8px;
+  padding: 8px 12px;
   background: #f8fafc;
   border-radius: 12px;
   min-height: 160px;
-  white-space: pre-wrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+}
+
+/* Section headers in report output to reduce white space */
+.report-output h3 {
+  margin: 8px 0 2px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 /* Override for HTML-rendered summary content to collapse whitespace */
+.report-output.html-report,
 .report-output .html-report {
   white-space: normal;
   font-family: inherit;
   color: var(--text);
+}
+
+/* Remove white space gaps in country summary */
+.report-summary h2,
+.report-summary p,
+.report-summary span {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2;
+}
+
+/* Sticker Grid & Cards */
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.sticker-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  text-align: center;
+  background: #fff5f5; /* Missing (Red-ish) */
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.sticker-card.owned {
+  background: #f0fdf4; /* Green-ish */
+  border-color: #bbf7d0;
+}
+
+.sticker-card.extra {
+  background: #fefce8; /* Yellow-ish */
+  border-color: #fde047;
+  border-width: 2px;
+}
+
+.sticker-card .id-label {
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.sticker-card .card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 /* Percent tracker styles */
