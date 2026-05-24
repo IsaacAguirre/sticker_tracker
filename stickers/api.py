@@ -137,7 +137,7 @@ def collect_global_reports() -> list[dict[str, Any]]:
     return reports
 
 
-def slice_reports_with_ties(reports: list[dict[str, Any]], limit: int = 5) -> tuple[list[dict[str, Any]], int, float | None]:
+def slice_reports_with_ties(reports: list[dict[str, Any]], limit: int = 10) -> tuple[list[dict[str, Any]], int, float | None]:
     displayed_reports = reports[:limit]
     tie_count = 0
     tie_percentage = None
