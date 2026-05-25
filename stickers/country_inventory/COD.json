@@ -1,9 +1,9 @@
 {
   "country": "COD",
   "team_stickers": {
-    "1": false,
-    "10": 1,
-    "11": 1,
+    "1": 1,
+    "10": 2,
+    "11": 2,
     "12": false,
     "13": false,
     "14": false,
