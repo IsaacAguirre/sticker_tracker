@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import re
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
@@ -98,6 +99,11 @@ def load_country_names() -> dict[str, str]:
 
 def get_country_name(country_code: str) -> str:
     return load_country_names().get(normalize_country_code(country_code), country_code)
+
+
+def natural_sort_key(s: str) -> list[int | str]:
+    """Helper to sort strings containing numbers numerically (e.g., MEX2 before MEX10)."""
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
 
 def ensure_country_exists(country_code: str) -> None:
@@ -436,20 +442,62 @@ def get_duplicates_report() -> list[dict[str, Any]]:
                 if global_inv:
                     report = build_inventory_report(code, global_inv, target_section=code)
                     if report["duplicates"]:
+                        sorted_dups = dict(sorted(report["duplicates"].items(), key=lambda x: natural_sort_key(x[0])))
                         entries.append({
                             "name": code,
                             "code": code,
-                            "duplicates": report["duplicates"]
+                            "duplicates": sorted_dups
                         })
             else:
                 try:
                     inv = load_country_inventory_by_code(code)
                     report = build_inventory_report(code, inv)
                     if report["duplicates"]:
+                        sorted_dups = dict(sorted(report["duplicates"].items(), key=lambda x: natural_sort_key(x[0])))
                         entries.append({
                             "name": country_names.get(code, code),
                             "code": code,
-                            "duplicates": report["duplicates"]
+                            "duplicates": sorted_dups
+                        })
+                except FileNotFoundError:
+                    continue
+        if entries:
+            results.append({"group": group_name, "entries": entries})
+    return results
+
+
+@app.get("/reports/missing")
+def get_missing_report() -> list[dict[str, Any]]:
+    all_groups = list_groups()["groups"]
+    country_names = load_country_names()
+    global_inv = None
+    try:
+        global_inv = load_global_inventory(GLOBAL_INVENTORY_FILE)
+    except FileNotFoundError:
+        pass
+
+    results = []
+    for group_name, codes in all_groups.items():
+        entries = []
+        for code in codes:
+            if code in ["FWC", "CC"]:
+                if global_inv:
+                    report = build_inventory_report(code, global_inv, target_section=code)
+                    if report["missing"]:
+                        entries.append({
+                            "name": code,
+                            "code": code,
+                            "missing": sorted(report["missing"], key=natural_sort_key)
+                        })
+            else:
+                try:
+                    inv = load_country_inventory_by_code(code)
+                    report = build_inventory_report(code, inv)
+                    if report["missing"]:
+                        entries.append({
+                            "name": country_names.get(code, code),
+                            "code": code,
+                            "missing": sorted(report["missing"], key=natural_sort_key)
                         })
                 except FileNotFoundError:
                     continue
@@ -475,10 +523,11 @@ def get_parallels_report() -> list[dict[str, Any]]:
                 if found_types:
                     valid_p[sid] = found_types
             if valid_p:
+                sorted_p = dict(sorted(valid_p.items(), key=lambda x: natural_sort_key(x[0])))
                 entries.append({
                     "name": country_names.get(code, code),
                     "code": code,
-                    "parallels": valid_p
+                    "parallels": sorted_p
                 })
         if entries:
             results.append({"group": group_name, "entries": entries})

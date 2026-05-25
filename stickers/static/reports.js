@@ -1,6 +1,7 @@
 const content = document.getElementById('report-content');
 const status = document.getElementById('status-message');
 const btnDups = document.getElementById('btn-duplicates');
+const btnMissing = document.getElementById('btn-missing');
 const btnPars = document.getElementById('btn-parallels');
 
 async function apiFetch(path) {
@@ -19,6 +20,7 @@ function showStatus(msg, type='success') {
 
 async function loadDuplicates() {
     btnDups.classList.add('active');
+    btnMissing?.classList.remove('active');
     btnPars.classList.remove('active');
     content.innerHTML = '<p>Generating duplicates report...</p>';
     
@@ -51,9 +53,45 @@ async function loadDuplicates() {
     }
 }
 
+async function loadMissing() {
+    btnMissing?.classList.add('active');
+    btnDups.classList.remove('active');
+    btnPars.classList.remove('active');
+    content.innerHTML = '<p>Generating missing stickers report...</p>';
+    
+    try {
+        const data = await apiFetch('/reports/missing');
+        if (data.length === 0) {
+            content.innerHTML = '<p>No missing stickers found in any inventory.</p>';
+            return;
+        }
+
+        let html = '';
+        data.forEach(group => {
+            html += `<div class="group-header"><h2>${group.group}</h2></div>`;
+            group.entries.forEach(entry => {
+                const missing = entry.missing
+                    .map(id => `<span class="sticker-item">${id}</span>`)
+                    .join('');
+                html += `
+                    <div class="country-entry">
+                        <strong>${entry.name}</strong>
+                        <div class="sticker-list">${missing}</div>
+                    </div>
+                `;
+            });
+        });
+        content.innerHTML = html;
+        showStatus('Missing stickers report updated.');
+    } catch (e) {
+        showStatus(e.message, 'error');
+    }
+}
+
 async function loadParallels() {
     btnPars.classList.add('active');
     btnDups.classList.remove('active');
+    btnMissing?.classList.remove('active');
     content.innerHTML = '<p>Generating parallels report...</p>';
 
     try {
@@ -90,7 +128,5 @@ async function loadParallels() {
 }
 
 btnDups.addEventListener('click', loadDuplicates);
+btnMissing?.addEventListener('click', loadMissing);
 btnPars.addEventListener('click', loadParallels);
-
-// Initialize
-loadDuplicates();
