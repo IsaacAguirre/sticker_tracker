@@ -9,16 +9,6 @@ const saveStatus = document.getElementById("save-status");
 let groupMap = {};
 let expandedParallelId = null;
 
-async function apiFetch(path, options = {}) {
-  const response = await fetch(path, options);
-  const contentType = response.headers.get("content-type") || "";
-  const data = contentType.includes("application/json") ? await response.json() : await response.text();
-  if (!response.ok) {
-    throw new Error(data.detail || data || response.statusText);
-  }
-  return data;
-}
-
 function formatReport(data) {
   const dupEntries = Object.entries(data.duplicates || {});
   const dupText = dupEntries.length > 0 ? dupEntries.map(([id, count]) => `${id} (x${count})`).join(", ") : "none";
@@ -95,10 +85,13 @@ function renderStickerGrid(data) {
     ? dupEntries.map(([id, count]) => `<strong>${id}</strong> (${count})`).join(", ") 
     : "none";
 
+  const flagUrl = getFlagUrl(data.country);
+  const flagHtml = flagUrl ? `<img src="${flagUrl}" class="flag-icon" alt="">` : '';
+
   const summary = document.createElement("div");
   summary.className = "report-summary";
   const summaryHtml = `
-    <h2 style="margin: 0; font-size: 1.15rem; display: inline-block; vertical-align: middle; margin-right: 12px;">${data.country_name || data.country}</h2>
+    ${flagHtml}<h2 style="margin: 0; font-size: 1.15rem; display: inline-block; vertical-align: middle; margin-right: 12px;">${data.country_name || data.country}</h2>
     <span style="font-size: 0.9rem; vertical-align: middle;">Completion: <strong>${data.completion_percentage}%</strong> (${data.counts.found}/${data.counts.total}) | Extras: <strong>${data.counts.total_duplicates}</strong></span>
     <p style="font-size: 0.85rem; color: #555; margin: 2px 0 0;">Detailed Extras: ${dupListText}</p>`.replace(/\n\s+/g, ' ');
   summary.innerHTML = summaryHtml;

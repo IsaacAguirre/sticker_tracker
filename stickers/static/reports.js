@@ -4,15 +4,6 @@ const btnDups = document.getElementById('btn-duplicates');
 const btnMissing = document.getElementById('btn-missing');
 const btnPars = document.getElementById('btn-parallels');
 
-async function apiFetch(path) {
-    const response = await fetch(path);
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || response.statusText);
-    }
-    return response.json();
-}
-
 function showStatus(msg, type='success') {
     status.textContent = msg;
     status.className = `status ${type}`;
@@ -38,9 +29,11 @@ async function loadDuplicates() {
                 const dups = Object.entries(entry.duplicates)
                     .map(([id, count]) => `<span class="sticker-item">${id} <strong>(x${count})</strong></span>`)
                     .join('');
+                const flagUrl = getFlagUrl(entry.code);
+                const flagHtml = flagUrl ? `<img src="${flagUrl}" class="flag-icon" alt="">` : '';
                 html += `
                     <div class="country-entry">
-                        <strong>${entry.name}</strong>
+                        <strong>${flagHtml}${entry.name}</strong>
                         <div class="sticker-list">${dups}</div>
                     </div>
                 `;
@@ -73,9 +66,11 @@ async function loadMissing() {
                 const missing = entry.missing
                     .map(id => `<span class="sticker-item">${id}</span>`)
                     .join('');
+                const flagUrl = getFlagUrl(entry.code);
+                const flagHtml = flagUrl ? `<img src="${flagUrl}" class="flag-icon" alt="">` : '';
                 html += `
                     <div class="country-entry">
-                        <strong>${entry.name}</strong>
+                        <strong>${flagHtml}${entry.name}</strong>
                         <div class="sticker-list">${missing}</div>
                     </div>
                 `;
@@ -105,6 +100,8 @@ async function loadParallels() {
         data.forEach(group => {
             html += `<div class="group-header"><h2>${group.group}</h2></div>`;
             group.entries.forEach(entry => {
+                const flagUrl = getFlagUrl(entry.code);
+                const flagHtml = flagUrl ? `<img src="${flagUrl}" class="flag-icon" alt="">` : '';
                 let pList = '';
                 Object.entries(entry.parallels).forEach(([sid, types]) => {
                     const typeTags = Object.entries(types)
@@ -114,7 +111,7 @@ async function loadParallels() {
                 });
                 html += `
                     <div class="country-entry">
-                        <strong>${entry.name}</strong>
+                        <strong>${flagHtml}${entry.name}</strong>
                         <div style="margin-top: 8px;">${pList}</div>
                     </div>
                 `;

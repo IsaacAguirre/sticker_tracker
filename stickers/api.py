@@ -166,8 +166,10 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
     total_count = 0
     total_duplicates_count = 0
     found_count = 0
+    unique_filled_count = 0
     sections_data = {}
     lookup_code = target_section if target_section else name
+    parallels = load_parallel_inventory(lookup_code)
 
     for type_name, stickers in inventory.items():
         if not isinstance(stickers, dict) or type_name in ("country", "inventory"):
@@ -180,6 +182,12 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
         for key, value in stickers.items():
             count = int(value)
             total_count += 1
+
+            # Check if we have either the base sticker OR any parallel version
+            has_parallel = any(v > 0 for v in parallels.get(key, {}).values())
+            if count > 0 or has_parallel:
+                unique_filled_count += 1
+
             if count > 0:
                 found.append(key)
                 found_count += 1
@@ -199,12 +207,13 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
         "completion_percentage": round(percentage, 2),
         "counts": {
             "found": found_count,
+            "unique_filled": unique_filled_count,
             "missing": len(missing),
             "total": total_count,
             "total_duplicates": total_duplicates_count,
         },
         "sections": sections_data,
-        "parallels": load_parallel_inventory(lookup_code),
+        "parallels": parallels,
         "parallel_types": get_parallel_types() if lookup_code.upper() not in [t.upper() for t in get_global_types()] else [],
     }
 
@@ -253,6 +262,7 @@ def summary_report() -> dict[str, Any]:
     total_reports = country_reports + global_reports
     total_possible_stickers = sum(report["counts"]["total"] for report in total_reports)
     total_owned_sticker_ids = sum(report["counts"]["found"] for report in total_reports)
+    total_unique_slots_filled = sum(report["counts"]["unique_filled"] for report in total_reports)
     total_missing_sticker_ids = sum(report["counts"]["missing"] for report in total_reports)
     total_duplicates = sum(report["counts"].get("total_duplicates", 0) for report in total_reports)
 
@@ -265,6 +275,9 @@ def summary_report() -> dict[str, Any]:
     )
     overall_sticker_completion_percentage = (
         round((total_owned_sticker_ids / total_possible_stickers * 100), 2) if total_possible_stickers > 0 else 0
+    )
+    overall_unique_completion_percentage = (
+        round((total_unique_slots_filled / total_possible_stickers * 100), 2) if total_possible_stickers > 0 else 0
     )
 
     sorted_desc = sorted(
@@ -289,6 +302,8 @@ def summary_report() -> dict[str, Any]:
         "total_inventories_completed": total_inventories_completed,
         "inventory_completion_percentage": inventory_completion_percentage,
         "overall_sticker_completion_percentage": overall_sticker_completion_percentage,
+        "total_unique_slots_filled": total_unique_slots_filled,
+        "overall_unique_completion_percentage": overall_unique_completion_percentage,
         "total_missing_sticker_ids": total_missing_sticker_ids,
         "top_countries": top_countries,
         "top_tie_count": top_tie_count,

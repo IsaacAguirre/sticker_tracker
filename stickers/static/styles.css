@@ -102,6 +102,18 @@ button:disabled {
   min-height: 160px;
 }
 
+/* Flag icons (WhatsApp style) */
+.flag-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 8px;
+  border: 1px solid var(--border);
+  background: #eee;
+}
+
 /* Section headers in report output to reduce white space */
 .report-output h3 {
   margin: 8px 0 2px;

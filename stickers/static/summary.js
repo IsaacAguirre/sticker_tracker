@@ -4,16 +4,6 @@ const topOutput = document.getElementById("top-output");
 const bottomOutput = document.getElementById("bottom-output");
 const statusMessage = document.getElementById("status-message");
 
-async function apiFetch(path, options = {}) {
-  const response = await fetch(path, options);
-  const contentType = response.headers.get("content-type") || "";
-  const data = contentType.includes("application/json") ? await response.json() : await response.text();
-  if (!response.ok) {
-    throw new Error(data.detail || data || response.statusText);
-  }
-  return data;
-}
-
 function renderOverview(report) {
   return `
     <div class="html-report" style="line-height: 1.6;">
@@ -27,6 +17,12 @@ function renderOverview(report) {
           <div class="tracker-title">Sticker Progress</div>
           <div class="tracker-bar" aria-hidden="true"><div class="tracker-fill" style="width: ${report.overall_sticker_completion_percentage}%;"></div></div>
           <div class="tracker-text">${report.total_owned_sticker_ids} / ${report.total_possible_stickers} (${report.overall_sticker_completion_percentage}%)</div>
+        </div>
+        <div class="tracker" style="background: #eff6ff; padding: 10px; border-radius: 12px; border: 1px solid #bfdbfe;">
+          <div class="tracker-title" style="color: var(--primary);">Unique Coverage</div>
+          <div class="tracker-bar" aria-hidden="true"><div class="tracker-fill" style="width: ${report.overall_unique_completion_percentage}%;"></div></div>
+          <div class="tracker-text"><strong>${report.total_unique_slots_filled} / ${report.total_possible_stickers} (${report.overall_unique_completion_percentage}%)</strong></div>
+          <small style="color: #60a5fa; display: block; margin-top: 4px; font-size: 0.7rem;">Counts IDs with Base or Parallel</small>
         </div>
       </div>
       <hr>
@@ -51,7 +47,9 @@ function renderCompletionList(items) {
   return `<ul>${items
     .map((item) => {
       const displayName = item.country_name || item.country;
-      return `<li>${displayName}: ${item.completion_percentage}% (${item.counts.found}/${item.counts.total})</li>`;
+      const flagUrl = getFlagUrl(item.country);
+      const flagHtml = flagUrl ? `<img src="${flagUrl}" class="flag-icon" alt="">` : '';
+      return `<li>${flagHtml}${displayName}: ${item.completion_percentage}% (${item.counts.found}/${item.counts.total})</li>`;
     })
     .join("")}</ul>`;
 }
