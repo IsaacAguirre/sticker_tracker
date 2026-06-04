@@ -18,7 +18,23 @@ Run from the `stickers` folder:
 
 ```bash
 cd stickers
+pip install -r requirements.txt
 uvicorn api:app --reload
+```
+
+For Firestore-backed multi-user mode, set the storage provider and Firebase credentials:
+
+```bash
+cd stickers
+export STORAGE_PROVIDER=firestore
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+uvicorn api:app --reload
+```
+
+When running in Firestore mode, protected API routes must receive a valid Firebase ID token in the `Authorization` header:
+
+```
+Authorization: Bearer <firebase-id-token>
 ```
 
 Endpoints:

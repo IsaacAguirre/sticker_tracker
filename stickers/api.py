@@ -1,34 +1,28 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
+import os
 import re
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Header
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator
 
+from storage.base import StorageProvider
+from storage.local_storage import LocalStorageProvider
+
 from inventory import (
     BASE_DIR,
     COUNTRY_INVENTORY_DIR,
-    GLOBAL_INVENTORY_FILE,
     apply_stickers,
-    load_parallel_inventory,
-    update_parallel_count,
     get_parallel_types,
     update_sticker_count,
     get_types_by_scope,
-    load_country_inventory_by_code,
     load_countries,
     load_groups,
     load_types,
-    load_global_inventory,
-    load_all_inventories,
-    save_country_inventory,
-    save_global_inventory,
-    summarize_duplicates,
-    summarize_missing,
     load_json,
 )
 
@@ -100,6 +94,31 @@ def load_country_names() -> dict[str, str]:
 def get_country_name(country_code: str) -> str:
     return load_country_names().get(normalize_country_code(country_code), country_code)
 
+STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "local").lower()
+
+
+def get_storage() -> StorageProvider:
+    if STORAGE_PROVIDER == "firestore":
+        from storage.firestore_storage import FirestoreStorageProvider
+
+        return FirestoreStorageProvider()
+    return LocalStorageProvider()
+
+
+def get_current_user(authorization: Optional[str] = Header(None)) -> str:
+    if STORAGE_PROVIDER == "local":
+        return "local_user"
+
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+
+    from firebase_auth import verify_firebase_token
+
+    try:
+        return verify_firebase_token(authorization)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
 
 def natural_sort_key(s: str) -> list[int | str]:
     """Helper to sort strings containing numbers numerically (e.g., MEX2 before MEX10)."""
@@ -114,31 +133,31 @@ def ensure_country_exists(country_code: str) -> None:
         raise HTTPException(status_code=404, detail=f"Country {country_code} not found")
 
 
-def collect_country_reports() -> list[dict[str, Any]]:
+def collect_country_reports(storage: StorageProvider, user_id: str) -> list[dict[str, Any]]:
     reports: list[dict[str, Any]] = []
     tracked_countries = set(load_countries())
 
     for country_code in sorted(tracked_countries):
         try:
-            inventory = load_country_inventory_by_code(country_code)
+            inventory = storage.load_country_inventory(user_id, country_code)
         except FileNotFoundError:
             continue
-        reports.append(build_inventory_report(country_code, inventory))
+        reports.append(build_inventory_report(country_code, inventory, storage, user_id))
 
     return reports
 
 
-def collect_global_reports() -> list[dict[str, Any]]:
+def collect_global_reports(storage: StorageProvider, user_id: str) -> list[dict[str, Any]]:
     reports: list[dict[str, Any]] = []
     global_map = {t.upper(): t for t in get_global_types()}
 
     try:
-        inventory = load_global_inventory(GLOBAL_INVENTORY_FILE)
+        inventory = storage.load_global_inventory(user_id)
     except FileNotFoundError:
         return reports
 
     for code, section_name in global_map.items():
-        reports.append(build_inventory_report(section_name, inventory, target_section=section_name))
+        reports.append(build_inventory_report(section_name, inventory, storage, user_id, target_section=section_name))
 
     return reports
 
@@ -159,7 +178,7 @@ def slice_reports_with_ties(reports: list[dict[str, Any]], limit: int = 10) -> t
     return displayed_reports, tie_count, tie_percentage
 
 
-def build_inventory_report(name: str, inventory: dict[str, Any], target_section: str | None = None) -> dict[str, Any]:
+def build_inventory_report(name: str, inventory: dict[str, Any], storage: StorageProvider, user_id: str, target_section: str | None = None) -> dict[str, Any]:
     found = []
     missing = []
     duplicates = {}
@@ -169,7 +188,7 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
     unique_filled_count = 0
     sections_data = {}
     lookup_code = target_section if target_section else name
-    parallels = load_parallel_inventory(lookup_code)
+    parallels = storage.load_parallel_inventory(user_id, lookup_code)
 
     for type_name, stickers in inventory.items():
         if not isinstance(stickers, dict) or type_name in ("country", "inventory"):
@@ -251,9 +270,9 @@ def list_groups() -> dict[str, Any]:
 
 
 @app.get("/summary")
-def summary_report() -> dict[str, Any]:
-    country_reports = collect_country_reports()
-    global_reports = collect_global_reports()
+def summary_report(storage: StorageProvider = Depends(get_storage), user_id: str = Depends(get_current_user)) -> dict[str, Any]:
+    country_reports = collect_country_reports(storage, user_id)
+    global_reports = collect_global_reports(storage, user_id)
     for report in country_reports:
         report["country_name"] = get_country_name(report["country"])
     for report in global_reports:
@@ -323,51 +342,55 @@ def add_page() -> HTMLResponse:
 
 
 @app.get("/inventory/{country_code}")
-def read_country_inventory(country_code: str) -> dict[str, Any]:
+def read_country_inventory(
+    country_code: str,
+    storage: StorageProvider = Depends(get_storage),
+    user_id: str = Depends(get_current_user),
+) -> dict[str, Any]:
     normalized_code = normalize_country_code(country_code)
     
     global_map = {t.upper(): t for t in get_global_types()}
     if normalized_code in global_map:
-        try:
-            inventory = load_global_inventory(GLOBAL_INVENTORY_FILE)
-            section_name = global_map[normalized_code]
-            report = build_inventory_report(section_name, inventory, target_section=section_name)
-            report["country_name"] = section_name
-            return report
-        except FileNotFoundError:
-            raise HTTPException(status_code=404, detail="Global inventory file not found")
+        inventory = storage.load_global_inventory(user_id)
+        section_name = global_map[normalized_code]
+        report = build_inventory_report(section_name, inventory, storage, user_id, target_section=section_name)
+        report["country_name"] = section_name
+        return report
 
     ensure_country_exists(normalized_code)
     try:
-        inventory = load_country_inventory_by_code(normalized_code)
+        inventory = storage.load_country_inventory(user_id, normalized_code)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Inventory file not found for {normalized_code}")
 
-    report = build_inventory_report(normalized_code, inventory)
+    report = build_inventory_report(normalized_code, inventory, storage, user_id)
     report["country_name"] = get_country_name(normalized_code)
     return report
 
 
 @app.post("/inventory/{country_code}")
-def add_country_stickers(country_code: str, payload: StickerUpdate) -> dict[str, Any]:
+def add_country_stickers(
+    country_code: str,
+    payload: StickerUpdate,
+    storage: StorageProvider = Depends(get_storage),
+    user_id: str = Depends(get_current_user),
+) -> dict[str, Any]:
     normalized_code = normalize_country_code(country_code)
     
     global_map = {t.upper(): t for t in get_global_types()}
     if normalized_code in global_map:
+        inventory = storage.load_global_inventory(user_id)
+        section_name = global_map[normalized_code]
         try:
-            inventory = load_global_inventory(GLOBAL_INVENTORY_FILE)
-            section_name = global_map[normalized_code]
             apply_stickers(inventory, payload.stickers)
-            save_global_inventory(inventory)
-            return build_inventory_report(section_name, inventory, target_section=section_name)
-        except FileNotFoundError:
-            raise HTTPException(status_code=404, detail="Global inventory file not found")
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
+        storage.save_global_inventory(user_id, inventory)
+        return build_inventory_report(section_name, inventory, storage, user_id, target_section=section_name)
 
     ensure_country_exists(normalized_code)
     try:
-        inventory = load_country_inventory_by_code(normalized_code)
+        inventory = storage.load_country_inventory(user_id, normalized_code)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Inventory file not found for {normalized_code}")
 
@@ -376,31 +399,34 @@ def add_country_stickers(country_code: str, payload: StickerUpdate) -> dict[str,
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-    save_country_inventory(normalized_code, inventory)
-    report = build_inventory_report(normalized_code, inventory)
+    storage.save_country_inventory(user_id, normalized_code, inventory)
+    report = build_inventory_report(normalized_code, inventory, storage, user_id)
     report["country_name"] = get_country_name(normalized_code)
     return report
 
 @app.patch("/inventory/{country_code}/sticker")
-def update_single_sticker(country_code: str, payload: StickerCountUpdate) -> dict[str, Any]:
+def update_single_sticker(
+    country_code: str,
+    payload: StickerCountUpdate,
+    storage: StorageProvider = Depends(get_storage),
+    user_id: str = Depends(get_current_user),
+) -> dict[str, Any]:
     normalized_code = normalize_country_code(country_code)
     
     global_map = {t.upper(): t for t in get_global_types()}
     if normalized_code in global_map:
+        inventory = storage.load_global_inventory(user_id)
+        section_name = global_map[normalized_code]
         try:
-            inventory = load_global_inventory(GLOBAL_INVENTORY_FILE)
-            section_name = global_map[normalized_code]
             update_sticker_count(inventory, payload.sticker_id, payload.count)
-            save_global_inventory(inventory)
-            return build_inventory_report(section_name, inventory, target_section=section_name)
-        except FileNotFoundError:
-            raise HTTPException(status_code=404, detail="Global inventory file not found")
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
+        storage.save_global_inventory(user_id, inventory)
+        return build_inventory_report(section_name, inventory, storage, user_id, target_section=section_name)
 
     ensure_country_exists(normalized_code)
     try:
-        inventory = load_country_inventory_by_code(normalized_code)
+        inventory = storage.load_country_inventory(user_id, normalized_code)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Inventory file not found for {normalized_code}")
 
@@ -409,26 +435,31 @@ def update_single_sticker(country_code: str, payload: StickerCountUpdate) -> dic
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-    save_country_inventory(normalized_code, inventory)
-    return build_inventory_report(normalized_code, inventory)
+    storage.save_country_inventory(user_id, normalized_code, inventory)
+    return build_inventory_report(normalized_code, inventory, storage, user_id)
 
 
 @app.patch("/inventory/{country_code}/parallel")
-def update_parallel_inventory(country_code: str, payload: ParallelUpdate) -> dict[str, Any]:
+def update_parallel_inventory(
+    country_code: str,
+    payload: ParallelUpdate,
+    storage: StorageProvider = Depends(get_storage),
+    user_id: str = Depends(get_current_user),
+) -> dict[str, Any]:
     normalized_code = normalize_country_code(country_code)
     ensure_country_exists(normalized_code)
 
     try:
-        update_parallel_count(normalized_code, payload.sticker_id, payload.parallel_type, payload.count)
+        storage.update_parallel_count(user_id, normalized_code, payload.sticker_id, payload.parallel_type, payload.count)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
     try:
-        inventory = load_country_inventory_by_code(normalized_code)
+        inventory = storage.load_country_inventory(user_id, normalized_code)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Inventory file not found for {normalized_code}")
 
-    return build_inventory_report(normalized_code, inventory)
+    return build_inventory_report(normalized_code, inventory, storage, user_id)
 
 
 @app.get("/reports", response_class=HTMLResponse)
@@ -440,12 +471,15 @@ def reports_page() -> HTMLResponse:
 
 
 @app.get("/reports/duplicates")
-def get_duplicates_report() -> list[dict[str, Any]]:
+def get_duplicates_report(
+    storage: StorageProvider = Depends(get_storage),
+    user_id: str = Depends(get_current_user),
+) -> list[dict[str, Any]]:
     all_groups = list_groups()["groups"]
     country_names = load_country_names()
     global_inv = None
     try:
-        global_inv = load_global_inventory(GLOBAL_INVENTORY_FILE)
+        global_inv = storage.load_global_inventory(user_id)
     except FileNotFoundError:
         pass
 
@@ -455,7 +489,7 @@ def get_duplicates_report() -> list[dict[str, Any]]:
         for code in codes:
             if code in ["FWC", "CC"]:
                 if global_inv:
-                    report = build_inventory_report(code, global_inv, target_section=code)
+                    report = build_inventory_report(code, global_inv, storage, user_id, target_section=code)
                     if report["duplicates"]:
                         sorted_dups = dict(sorted(report["duplicates"].items(), key=lambda x: natural_sort_key(x[0])))
                         entries.append({
@@ -465,8 +499,8 @@ def get_duplicates_report() -> list[dict[str, Any]]:
                         })
             else:
                 try:
-                    inv = load_country_inventory_by_code(code)
-                    report = build_inventory_report(code, inv)
+                    inv = storage.load_country_inventory(user_id, code)
+                    report = build_inventory_report(code, inv, storage, user_id)
                     if report["duplicates"]:
                         sorted_dups = dict(sorted(report["duplicates"].items(), key=lambda x: natural_sort_key(x[0])))
                         entries.append({
@@ -482,12 +516,15 @@ def get_duplicates_report() -> list[dict[str, Any]]:
 
 
 @app.get("/reports/missing")
-def get_missing_report() -> list[dict[str, Any]]:
+def get_missing_report(
+    storage: StorageProvider = Depends(get_storage),
+    user_id: str = Depends(get_current_user),
+) -> list[dict[str, Any]]:
     all_groups = list_groups()["groups"]
     country_names = load_country_names()
     global_inv = None
     try:
-        global_inv = load_global_inventory(GLOBAL_INVENTORY_FILE)
+        global_inv = storage.load_global_inventory(user_id)
     except FileNotFoundError:
         pass
 
@@ -497,7 +534,7 @@ def get_missing_report() -> list[dict[str, Any]]:
         for code in codes:
             if code in ["FWC", "CC"]:
                 if global_inv:
-                    report = build_inventory_report(code, global_inv, target_section=code)
+                    report = build_inventory_report(code, global_inv, storage, user_id, target_section=code)
                     if report["missing"]:
                         entries.append({
                             "name": code,
@@ -506,8 +543,8 @@ def get_missing_report() -> list[dict[str, Any]]:
                         })
             else:
                 try:
-                    inv = load_country_inventory_by_code(code)
-                    report = build_inventory_report(code, inv)
+                    inv = storage.load_country_inventory(user_id, code)
+                    report = build_inventory_report(code, inv, storage, user_id)
                     if report["missing"]:
                         entries.append({
                             "name": country_names.get(code, code),
@@ -522,7 +559,10 @@ def get_missing_report() -> list[dict[str, Any]]:
 
 
 @app.get("/reports/parallels")
-def get_parallels_report() -> list[dict[str, Any]]:
+def get_parallels_report(
+    storage: StorageProvider = Depends(get_storage),
+    user_id: str = Depends(get_current_user),
+) -> list[dict[str, Any]]:
     all_groups = list_groups()["groups"]
     country_names = load_country_names()
     results = []
@@ -531,7 +571,7 @@ def get_parallels_report() -> list[dict[str, Any]]:
         for code in codes:
             if code in ["FWC", "CC"]:
                 continue
-            p_inv = load_parallel_inventory(code)
+            p_inv = storage.load_parallel_inventory(user_id, code)
             valid_p = {}
             for sid, types in p_inv.items():
                 found_types = {t: c for t, c in types.items() if c > 0}

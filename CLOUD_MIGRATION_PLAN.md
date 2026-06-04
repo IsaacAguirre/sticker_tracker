@@ -97,13 +97,15 @@ google-cloud-firestore # Firestore client
 **Goal**: Enable switching between local JSON and Firestore without rewriting endpoints
 
 **Tasks**:
-- [ ] Create `storage/base.py` with `StorageProvider` abstract class
-- [ ] Implement `storage/local_storage.py` (refactor existing JSON logic)
-- [ ] Update `api.py` to inject storage provider
-- [ ] Add environment variable: `STORAGE_PROVIDER=local|firestore`
+- [x] Create `storage/base.py` with `StorageProvider` abstract class
+- [x] Implement `storage/local_storage.py` (refactor existing JSON logic)
+- [x] Update `api.py` to inject storage provider
+- [x] Add environment variable: `STORAGE_PROVIDER=local|firestore`
 - [ ] Run all existing tests with both providers
 
 **Deliverable**: Same app works with local JSON OR Firestore via config
+
+> Note: Local JSON access remains available by default, and Firestore is only activated when `STORAGE_PROVIDER=firestore`.
 
 ---
 
@@ -111,14 +113,16 @@ google-cloud-firestore # Firestore client
 **Goal**: Add Firebase Auth for multi-user isolation
 
 **Tasks**:
-- [ ] Set up Firebase project in GCP Console
-- [ ] Create `auth/firebase_auth.py` middleware
+- [x] Set up Firebase project in GCP Console
+- [x] Create `auth/firebase_auth.py` middleware
 - [ ] Add login/signup routes to `api.py`
 - [ ] Modify frontend to use Firebase Auth SDK
-- [ ] Add `user_id` validation to all inventory endpoints
-- [ ] Update data paths to include `user_id` namespace
+- [x] Add `user_id` validation to all inventory endpoints
+- [x] Update data paths to include `user_id` namespace in backend storage calls
 
 **Deliverable**: Users can sign up, log in, and their data is isolated
+
+> Backend support is ready for Firebase authentication tokens; frontend auth integration is still pending.
 
 ---
 
@@ -126,13 +130,15 @@ google-cloud-firestore # Firestore client
 **Goal**: Replace JSON file storage with Firestore
 
 **Tasks**:
-- [ ] Create `storage/firestore_storage.py`
+- [x] Create `storage/firestore_storage.py`
 - [ ] Write migration script: `scripts/migrate_json_to_firestore.py`
 - [ ] Test data integrity (counts, stickers match before/after)
-- [ ] Update `api.py` to use Firestore provider
+- [x] Update `api.py` to use Firestore provider when enabled
 - [ ] Add cloud-based backup strategy
 
 **Deliverable**: All data persists in Firestore, no local files needed
+
+> Note: Local storage is still fully available; Firestore is optional and activated with `STORAGE_PROVIDER=firestore`.
 
 ---
 
@@ -203,10 +209,11 @@ gcloud firestore databases create --region=us-central1
 
 ### Step 2: Create Firebase Auth Project
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create new project → Link to your GCP project
-3. Enable **Authentication** (Email/Password + Google Sign-In)
-4. Enable **Firestore** Database
+1. Go to the dedicated **[Firebase Console](https://console.firebase.google.com/)** (not the GCP console).
+2. Click **"Add project"** and select your existing `sticker-tracker-prod` from the dropdown.
+3. In the left sidebar, locate the **Product categories** section:
+   - Click **Security > Authentication** → Click **"Get Started"** → Enable **Email/Password** in the "Sign-in method" tab.
+   - Click **Databases & Storage > Firestore Database**. You should see the `(default)` database you created via the CLI.
 5. Download service account key → save as `firebase-key.json`
 6. Add to `.gitignore`
 
@@ -500,4 +507,3 @@ A: Unlikely for a personal project. At $0.000025 per request, you'd need 40,000 
 
 **Q: How do I back up my data?**
 A: Firestore exports can be scheduled automatically to Google Cloud Storage (free tier covers it).
-
