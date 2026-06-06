@@ -442,7 +442,6 @@ def reports_page() -> HTMLResponse:
 @app.get("/reports/duplicates")
 def get_duplicates_report() -> list[dict[str, Any]]:
     all_groups = list_groups()["groups"]
-    country_names = load_country_names()
     global_inv = None
     try:
         global_inv = load_global_inventory(GLOBAL_INVENTORY_FILE)
@@ -459,7 +458,6 @@ def get_duplicates_report() -> list[dict[str, Any]]:
                     if report["duplicates"]:
                         sorted_dups = dict(sorted(report["duplicates"].items(), key=lambda x: natural_sort_key(x[0])))
                         entries.append({
-                            "name": code,
                             "code": code,
                             "duplicates": sorted_dups
                         })
@@ -470,7 +468,6 @@ def get_duplicates_report() -> list[dict[str, Any]]:
                     if report["duplicates"]:
                         sorted_dups = dict(sorted(report["duplicates"].items(), key=lambda x: natural_sort_key(x[0])))
                         entries.append({
-                            "name": country_names.get(code, code),
                             "code": code,
                             "duplicates": sorted_dups
                         })
@@ -484,7 +481,6 @@ def get_duplicates_report() -> list[dict[str, Any]]:
 @app.get("/reports/missing")
 def get_missing_report() -> list[dict[str, Any]]:
     all_groups = list_groups()["groups"]
-    country_names = load_country_names()
     global_inv = None
     try:
         global_inv = load_global_inventory(GLOBAL_INVENTORY_FILE)
@@ -500,7 +496,6 @@ def get_missing_report() -> list[dict[str, Any]]:
                     report = build_inventory_report(code, global_inv, target_section=code)
                     if report["missing"]:
                         entries.append({
-                            "name": code,
                             "code": code,
                             "missing": sorted(report["missing"], key=natural_sort_key)
                         })
@@ -510,7 +505,6 @@ def get_missing_report() -> list[dict[str, Any]]:
                     report = build_inventory_report(code, inv)
                     if report["missing"]:
                         entries.append({
-                            "name": country_names.get(code, code),
                             "code": code,
                             "missing": sorted(report["missing"], key=natural_sort_key)
                         })
@@ -524,7 +518,6 @@ def get_missing_report() -> list[dict[str, Any]]:
 @app.get("/reports/parallels")
 def get_parallels_report() -> list[dict[str, Any]]:
     all_groups = list_groups()["groups"]
-    country_names = load_country_names()
     results = []
     for group_name, codes in all_groups.items():
         entries = []
@@ -540,7 +533,6 @@ def get_parallels_report() -> list[dict[str, Any]]:
             if valid_p:
                 sorted_p = dict(sorted(valid_p.items(), key=lambda x: natural_sort_key(x[0])))
                 entries.append({
-                    "name": country_names.get(code, code),
                     "code": code,
                     "parallels": sorted_p
                 })

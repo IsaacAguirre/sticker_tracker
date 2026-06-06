@@ -4,6 +4,9 @@ const btnDups = document.getElementById('btn-duplicates');
 const btnMissing = document.getElementById('btn-missing');
 const btnPars = document.getElementById('btn-parallels');
 
+let lastDuplicatesData = null;
+let lastMissingData = null;
+
 function showStatus(msg, type='success') {
     status.textContent = msg;
     status.className = `status ${type}`;
@@ -17,12 +20,13 @@ async function loadDuplicates() {
     
     try {
         const data = await apiFetch('/reports/duplicates');
+        lastDuplicatesData = data;
         if (data.length === 0) {
             content.innerHTML = '<p>No duplicate stickers found in any inventory.</p>';
             return;
         }
 
-        let html = '';
+        let html = '<div class="report-actions" style="margin-bottom: 20px;"><button class="btn-secondary" onclick="exportDuplicates()">Export CSV</button></div>';
         data.forEach(group => {
             html += `<div class="group-header"><h2>${group.group}</h2></div>`;
             group.entries.forEach(entry => {
@@ -33,7 +37,7 @@ async function loadDuplicates() {
                 const flagHtml = flagUrl ? `<img src="${flagUrl}" class="flag-icon" alt="">` : '';
                 html += `
                     <div class="country-entry">
-                        <strong>${flagHtml}${entry.name}</strong>
+                        <strong>${flagHtml}${entry.code}</strong>
                         <div class="sticker-list">${dups}</div>
                     </div>
                 `;
@@ -54,12 +58,13 @@ async function loadMissing() {
     
     try {
         const data = await apiFetch('/reports/missing');
+        lastMissingData = data;
         if (data.length === 0) {
             content.innerHTML = '<p>No missing stickers found in any inventory.</p>';
             return;
         }
 
-        let html = '';
+        let html = '<div class="report-actions" style="margin-bottom: 20px;"><button class="btn-secondary" onclick="exportMissing()">Export CSV</button></div>';
         data.forEach(group => {
             html += `<div class="group-header"><h2>${group.group}</h2></div>`;
             group.entries.forEach(entry => {
@@ -70,7 +75,7 @@ async function loadMissing() {
                 const flagHtml = flagUrl ? `<img src="${flagUrl}" class="flag-icon" alt="">` : '';
                 html += `
                     <div class="country-entry">
-                        <strong>${flagHtml}${entry.name}</strong>
+                        <strong>${flagHtml}${entry.code}</strong>
                         <div class="sticker-list">${missing}</div>
                     </div>
                 `;
@@ -111,7 +116,7 @@ async function loadParallels() {
                 });
                 html += `
                     <div class="country-entry">
-                        <strong>${flagHtml}${entry.name}</strong>
+                        <strong>${flagHtml}${entry.code}</strong>
                         <div style="margin-top: 8px;">${pList}</div>
                     </div>
                 `;
@@ -123,6 +128,46 @@ async function loadParallels() {
         showStatus(e.message, 'error');
     }
 }
+
+function downloadCSV(filename, rows) {
+    const csvContent = rows.map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    ).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+window.exportDuplicates = function() {
+    if (!lastDuplicatesData) return;
+    const rows = [["Group", "Country", "Stickers"]];
+    lastDuplicatesData.forEach(group => {
+        group.entries.forEach(entry => {
+            const stickerList = Object.entries(entry.duplicates)
+                .map(([id, count]) => `${id} (x${count})`)
+                .join(", ");
+            rows.push([group.group, entry.code, stickerList]);
+        });
+    });
+    downloadCSV("duplicates_report.csv", rows);
+};
+
+window.exportMissing = function() {
+    if (!lastMissingData) return;
+    const rows = [["Group", "Country", "Stickers"]];
+    lastMissingData.forEach(group => {
+        group.entries.forEach(entry => {
+            const stickerList = entry.missing.join(", ");
+            rows.push([group.group, entry.code, stickerList]);
+        });
+    });
+    downloadCSV("missing_report.csv", rows);
+};
 
 btnDups.addEventListener('click', loadDuplicates);
 btnMissing?.addEventListener('click', loadMissing);
