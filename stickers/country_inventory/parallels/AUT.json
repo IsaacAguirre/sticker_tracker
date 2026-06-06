@@ -1,0 +1,42 @@
+{
+  "10": {
+    "counts": {
+      "blue": 1,
+      "gold": 0,
+      "green": 0,
+      "purple": 0,
+      "red": 0
+    },
+    "counts_as_base": false
+  },
+  "4": {
+    "counts": {
+      "blue": 1,
+      "gold": 0,
+      "green": 0,
+      "purple": 0,
+      "red": 0
+    },
+    "counts_as_base": false
+  },
+  "5": {
+    "counts": {
+      "blue": 1,
+      "gold": 0,
+      "green": 0,
+      "purple": 0,
+      "red": 0
+    },
+    "counts_as_base": true
+  },
+  "7": {
+    "counts": {
+      "blue": 2,
+      "gold": 0,
+      "green": 0,
+      "purple": 0,
+      "red": 0
+    },
+    "counts_as_base": false
+  }
+}

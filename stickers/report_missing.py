@@ -8,6 +8,7 @@ from inventory import (
     BASE_DIR,
     GLOBAL_INVENTORY_FILE,
     load_all_inventories,
+    load_parallel_inventory,
     load_global_inventory,
     load_types,
     load_groups,
@@ -19,9 +20,10 @@ from inventory import (
 
 
 def format_summary(country_code: str, inventory: dict[str, Any], target_section: str | None = None) -> str:
-    missing = summarize_missing(inventory)
+    parallels = load_parallel_inventory(target_section if target_section else country_code)
+    missing = summarize_missing(inventory, parallels)
     duplicates = summarize_duplicates(inventory)
-    missing_map = missing_items(inventory)
+    missing_map = missing_items(inventory, parallels)
 
     if target_section:
         missing = {target_section: missing.get(target_section, 0)}
@@ -101,7 +103,8 @@ def main() -> None:
         return
 
     for country_code, inventory in sorted(inventories.items()):
-        missing = summarize_missing(inventory)
+        parallels = load_parallel_inventory(country_code)
+        missing = summarize_missing(inventory, parallels)
         total_missing = sum(missing.values())
         total_items = sum(len(v) for k, v in inventory.items() if isinstance(v, dict) and k != "country")
         completion = (1 - total_missing / total_items) * 100 if total_items > 0 else 0
@@ -121,7 +124,8 @@ def main() -> None:
     print("\n--- Country Summaries (Ordered by World Cup Group) ---")
     for country_code in ordered_country_codes:
         inventory = inventories[country_code]
-        missing = summarize_missing(inventory)
+        parallels = load_parallel_inventory(country_code)
+        missing = summarize_missing(inventory, parallels)
         total_missing = sum(missing.values())
         total_items = sum(len(v) for k, v in inventory.items() if isinstance(v, dict) and k != "country")
         completion = (1 - total_missing / total_items) * 100 if total_items > 0 else 0

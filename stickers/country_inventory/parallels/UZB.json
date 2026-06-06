@@ -1,27 +1,20 @@
 {
-  "12": {
+  "15": {
     "counts": {
-      "blue": 1,
+      "blue": 0,
       "gold": 0,
       "green": 0,
       "purple": 0,
-      "red": 0
+      "red": 1
     },
     "counts_as_base": true
   },
-  "15": {
-    "blue": 0,
-    "gold": 0,
-    "green": 0,
-    "purple": 0,
-    "red": 1
-  },
-  "17": {
+  "4": {
     "counts": {
-      "blue": 1,
+      "blue": 0,
       "gold": 0,
       "green": 0,
-      "purple": 0,
+      "purple": 1,
       "red": 0
     },
     "counts_as_base": false

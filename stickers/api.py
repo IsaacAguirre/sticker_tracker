@@ -67,6 +67,7 @@ class ParallelUpdate(BaseModel):
     sticker_id: str
     parallel_type: str
     count: int
+    counts_as_base: bool = False
 
 
 def normalize_country_code(country_code: str) -> str:
@@ -183,14 +184,18 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
             count = int(value)
             total_count += 1
 
-            # Check if we have either the base sticker OR any parallel version
-            has_parallel = any(v > 0 for v in parallels.get(key, {}).values())
-            if count > 0 or has_parallel:
+            p_data = parallels.get(key, {})
+            p_counts = p_data.get("counts", p_data) if isinstance(p_data, dict) else {}
+            p_flag = p_data.get("counts_as_base", False) if isinstance(p_data, dict) else False
+            
+            # A parallel makes the slot "filled" only if the flag is set
+            has_eligible_parallel = p_flag and any(v > 0 for v in p_counts.values())
+            
+            if count > 0 or has_eligible_parallel:
                 unique_filled_count += 1
-
-            if count > 0:
-                found.append(key)
                 found_count += 1
+                found.append(key)
+                
                 if count > 1:
                     duplicates[key] = (count - 1)
                     total_duplicates_count += (count - 1)
@@ -419,7 +424,7 @@ def update_parallel_inventory(country_code: str, payload: ParallelUpdate) -> dic
     ensure_country_exists(normalized_code)
 
     try:
-        update_parallel_count(normalized_code, payload.sticker_id, payload.parallel_type, payload.count)
+        update_parallel_count(normalized_code, payload.sticker_id, payload.parallel_type, payload.count, payload.counts_as_base)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -526,8 +531,9 @@ def get_parallels_report() -> list[dict[str, Any]]:
                 continue
             p_inv = load_parallel_inventory(code)
             valid_p = {}
-            for sid, types in p_inv.items():
-                found_types = {t: c for t, c in types.items() if c > 0}
+            for sid, data in p_inv.items():
+                p_counts = data.get("counts", data) if isinstance(data, dict) else {}
+                found_types = {t: c for t, c in p_counts.items() if c > 0}
                 if found_types:
                     valid_p[sid] = found_types
             if valid_p:

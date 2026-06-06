@@ -152,22 +152,44 @@ def load_parallel_inventory(country_code: str) -> Dict[str, Dict[str, int]]:
 def save_parallel_inventory(country_code: str, data: Dict[str, Dict[str, int]]) -> None:
     save_json(get_parallel_inventory_path(country_code), data)
 
-def update_parallel_count(country_code: str, sticker_id: str, parallel_type: str, count: int) -> None:
+def update_parallel_count(country_code: str, sticker_id: str, parallel_type: str, count: int, counts_as_base: bool = False) -> None:
     inventory = load_parallel_inventory(country_code)
+    
     if sticker_id not in inventory:
-        inventory[sticker_id] = {pt: 0 for pt in PARALLEL_TYPES}
-    if parallel_type not in PARALLEL_TYPES:
+        inventory[sticker_id] = {
+            "counts": {pt: 0 for pt in PARALLEL_TYPES},
+            "counts_as_base": False
+        }
+    elif "counts" not in inventory[sticker_id] and isinstance(inventory[sticker_id], dict):
+        # Migrate old format to new format
+        old_counts = inventory[sticker_id]
+        inventory[sticker_id] = {"counts": old_counts, "counts_as_base": False}
+
+    if parallel_type in PARALLEL_TYPES:
+        inventory[sticker_id]["counts"][parallel_type] = max(0, count)
+    elif parallel_type != "":
         raise ValueError(f"Invalid parallel type: {parallel_type}")
-    inventory[sticker_id][parallel_type] = max(0, count)
+    
+    inventory[sticker_id]["counts_as_base"] = counts_as_base
     save_parallel_inventory(country_code, inventory)
 
-def summarize_missing(inventory: Dict[str, Any]) -> Dict[str, int]:
+def summarize_missing(inventory: Dict[str, Any], parallels: Dict[str, Any] | None = None) -> Dict[str, int]:
     missing: Dict[str, int] = {}
+    parallels = parallels or {}
     for type_name, values in inventory.items():
         if type_name in ("country", "inventory"):
             continue
         if isinstance(values, dict):
-            missing[type_name] = sum(1 for flag in values.values() if not flag)
+            count = 0
+            for sid, val in values.items():
+                p_data = parallels.get(sid, {})
+                p_counts = p_data.get("counts", p_data) if isinstance(p_data, dict) else {}
+                p_flag = p_data.get("counts_as_base", False) if isinstance(p_data, dict) else False
+                has_eligible_parallel = p_flag and any(v > 0 for v in p_counts.values())
+                
+                if not (int(val) > 0 or has_eligible_parallel):
+                    count += 1
+            missing[type_name] = count
     return missing
 
 
@@ -182,12 +204,22 @@ def summarize_duplicates(inventory: Dict[str, Any]) -> Dict[str, int]:
     return duplicates
 
 
-def missing_items(inventory: Dict[str, Any]) -> Dict[str, list[str]]:
+def missing_items(inventory: Dict[str, Any], parallels: Dict[str, Any] | None = None) -> Dict[str, list[str]]:
     missing_by_type: Dict[str, list[str]] = {}
+    parallels = parallels or {}
     for type_name, values in inventory.items():
         if type_name in ("country", "inventory") or not isinstance(values, dict):
             continue
-        missing_by_type[type_name] = [key for key, flag in values.items() if not int(flag)]
+        m_list = []
+        for sid, val in values.items():
+            p_data = parallels.get(sid, {})
+            p_counts = p_data.get("counts", p_data) if isinstance(p_data, dict) else {}
+            p_flag = p_data.get("counts_as_base", False) if isinstance(p_data, dict) else False
+            has_eligible_parallel = p_flag and any(v > 0 for v in p_counts.values())
+            
+            if not (int(val) > 0 or has_eligible_parallel):
+                m_list.append(sid)
+        missing_by_type[type_name] = m_list
     return missing_by_type
 
 

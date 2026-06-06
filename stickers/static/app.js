@@ -106,8 +106,10 @@ function renderStickerGrid(data) {
     grid.className = "sticker-grid";
 
     Object.entries(stickers).forEach(([id, count]) => {
-      const stickerParallels = (data.parallels && data.parallels[id]) || {};
-      const hasParallels = Object.values(stickerParallels).some(v => v > 0);
+      const pData = (data.parallels && data.parallels[id]) || {};
+      const pCounts = pData.counts || pData;
+      const pFlag = pData.counts_as_base || false;
+      const hasParallels = Object.values(pCounts).some(v => v > 0);
 
       const card = document.createElement("div");
       card.id = `sticker-${id}`;
@@ -129,15 +131,20 @@ function renderStickerGrid(data) {
               ${hasParallels ? '★ Parallels' : 'Parallels'}
             </button>
           <div id="parallels-${id}" style="display: ${isExpanded ? 'block' : 'none'}; margin-top: 6px; font-size: 0.8rem; text-align: left;">
+              <div style="margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.75rem;">
+                  <input type="checkbox" ${pFlag ? 'checked' : ''} onchange="updateParallelCount('${id}', '', 0, this.checked)" style="width: auto;"> Counts as Base
+                </label>
+              </div>
               ${parallelTypes.map(type => {
-                const pCount = stickerParallels[type] || 0;
+                const pCount = pCounts[type] || 0;
                 return `
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                     <span style="color: ${type}; font-weight: bold;">${type}:</span>
                     <div style="display: flex; gap: 4px; align-items: center;">
-                      <button onclick="updateParallelCount('${id}', '${type}', ${pCount - 1})" style="padding: 0 5px; font-size: 0.85rem; line-height: 1;">-</button>
+                      <button onclick="updateParallelCount('${id}', '${type}', ${pCount - 1}, ${pFlag})" style="padding: 0 5px; font-size: 0.85rem; line-height: 1;">-</button>
                       <span>${pCount}</span>
-                      <button onclick="updateParallelCount('${id}', '${type}', ${pCount + 1})" style="padding: 0 5px; font-size: 0.85rem; line-height: 1;">+</button>
+                      <button onclick="updateParallelCount('${id}', '${type}', ${pCount + 1}, ${pFlag})" style="padding: 0 5px; font-size: 0.85rem; line-height: 1;">+</button>
                     </div>
                   </div>
                 `;
@@ -175,14 +182,14 @@ window.updateCount = async function(stickerId, newCount) {
   }
 };
 
-window.updateParallelCount = async function(stickerId, type, newCount) {
+window.updateParallelCount = async function(stickerId, type, newCount, countsAsBase) {
   if (newCount < 0) return;
   const countryCode = countrySelect.value;
   try {
     const data = await apiFetch(`/inventory/${countryCode}/parallel`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sticker_id: stickerId, parallel_type: type, count: newCount }),
+      body: JSON.stringify({ sticker_id: stickerId, parallel_type: type, count: newCount, counts_as_base: countsAsBase }),
     });
     renderStickerGrid(data);
   } catch (error) {
