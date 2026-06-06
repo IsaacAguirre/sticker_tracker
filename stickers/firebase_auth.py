@@ -20,6 +20,7 @@ def initialize_firebase_app() -> None:
 
 
 def verify_firebase_token(authorization_header: str) -> str:
+    initialize_firebase_app()
     from firebase_admin import auth
 
     if authorization_header.startswith("Bearer "):

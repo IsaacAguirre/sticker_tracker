@@ -131,7 +131,7 @@ google-cloud-firestore # Firestore client
 
 **Tasks**:
 - [x] Create `storage/firestore_storage.py`
-- [ ] Write migration script: `scripts/migrate_json_to_firestore.py`
+- [x] Write migration script: `scripts/migrate_json_to_firestore.py`
 - [ ] Test data integrity (counts, stickers match before/after)
 - [x] Update `api.py` to use Firestore provider when enabled
 - [ ] Add cloud-based backup strategy
@@ -146,8 +146,8 @@ google-cloud-firestore # Firestore client
 **Goal**: Package FastAPI app for Cloud Run
 
 **Tasks**:
-- [ ] Create `Dockerfile`
-- [ ] Create `.dockerignore`
+- [x] Create `Dockerfile`
+- [x] Create `.dockerignore`
 - [ ] Add `entrypoint.sh` script
 - [ ] Test container locally: `docker build && docker run`
 - [ ] Push to Google Artifact Registry
