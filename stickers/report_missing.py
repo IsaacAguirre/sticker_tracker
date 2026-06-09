@@ -22,7 +22,7 @@ from inventory import (
 def format_summary(country_code: str, inventory: dict[str, Any], target_section: str | None = None) -> str:
     parallels = load_parallel_inventory(target_section if target_section else country_code)
     missing = summarize_missing(inventory, parallels)
-    duplicates = summarize_duplicates(inventory)
+    duplicates = summarize_duplicates(inventory, parallels)
     missing_map = missing_items(inventory, parallels)
 
     if target_section:
@@ -109,7 +109,7 @@ def main() -> None:
         total_items = sum(len(v) for k, v in inventory.items() if isinstance(v, dict) and k != "country")
         completion = (1 - total_missing / total_items) * 100 if total_items > 0 else 0
         
-        duplicates = sum(summarize_duplicates(inventory).values())
+        duplicates = sum(summarize_duplicates(inventory, parallels).values())
         dup_str = f" [{duplicates} dups]" if duplicates > 0 else ""
         print(f"{country_code}: {total_missing} missing ({completion:.1f}%){dup_str}")
 
@@ -129,7 +129,7 @@ def main() -> None:
         total_missing = sum(missing.values())
         total_items = sum(len(v) for k, v in inventory.items() if isinstance(v, dict) and k != "country")
         completion = (1 - total_missing / total_items) * 100 if total_items > 0 else 0
-        duplicates = sum(summarize_duplicates(inventory).values())
+        duplicates = sum(summarize_duplicates(inventory, parallels).values())
         dup_str = f" [{duplicates} dups]" if duplicates > 0 else ""
         print(f"{country_code}: {total_missing} missing ({completion:.1f}%){dup_str}")
 

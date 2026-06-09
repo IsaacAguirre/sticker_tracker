@@ -196,7 +196,12 @@ def build_inventory_report(name: str, inventory: dict[str, Any], target_section:
                 found_count += 1
                 found.append(key)
                 
-                if count > 1:
+                # If a parallel fills the base slot, any base stickers are duplicates
+                if has_eligible_parallel:
+                    if count > 0:
+                        duplicates[key] = count
+                        total_duplicates_count += count
+                elif count > 1:
                     duplicates[key] = (count - 1)
                     total_duplicates_count += (count - 1)
             else:

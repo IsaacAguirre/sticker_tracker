@@ -193,14 +193,26 @@ def summarize_missing(inventory: Dict[str, Any], parallels: Dict[str, Any] | Non
     return missing
 
 
-def summarize_duplicates(inventory: Dict[str, Any]) -> Dict[str, int]:
+def summarize_duplicates(inventory: Dict[str, Any], parallels: Dict[str, Any] | None = None) -> Dict[str, int]:
     duplicates: Dict[str, int] = {}
+    parallels = parallels or {}
     for type_name, values in inventory.items():
         if type_name in ("country", "inventory"):
             continue
         if isinstance(values, dict):
-            # Sum up extra copies (count - 1 for those > 1)
-            duplicates[type_name] = sum(int(val) - 1 for val in values.values() if int(val) > 1)
+            count_sum = 0
+            for sid, val in values.items():
+                base_count = int(val)
+                p_data = parallels.get(sid, {})
+                p_counts = p_data.get("counts", p_data) if isinstance(p_data, dict) else {}
+                p_flag = p_data.get("counts_as_base", False) if isinstance(p_data, dict) else False
+                has_eligible_parallel = p_flag and any(v > 0 for v in p_counts.values())
+
+                if has_eligible_parallel:
+                    count_sum += base_count
+                elif base_count > 1:
+                    count_sum += (base_count - 1)
+            duplicates[type_name] = count_sum
     return duplicates
 
 
