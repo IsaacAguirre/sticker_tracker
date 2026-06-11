@@ -9,6 +9,26 @@
     },
     "counts_as_base": true
   },
+  "3": {
+    "counts": {
+      "blue": 1,
+      "gold": 0,
+      "green": 0,
+      "purple": 0,
+      "red": 0
+    },
+    "counts_as_base": true
+  },
+  "4": {
+    "counts": {
+      "blue": 1,
+      "gold": 0,
+      "green": 0,
+      "purple": 0,
+      "red": 0
+    },
+    "counts_as_base": true
+  },
   "5": {
     "counts": {
       "blue": 1,
