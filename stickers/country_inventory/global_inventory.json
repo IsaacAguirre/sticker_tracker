@@ -14,7 +14,16 @@
     "CC9": 1
   },
   "FWC": {
+    "00": false,
     "FWC1": 2,
+    "FWC2": 1,
+    "FWC3": 1,
+    "FWC4": false,
+    "FWC5": 1,
+    "FWC6": 1,
+    "FWC7": false,
+    "FWC8": false,
+    "FWC9": 1,
     "FWC10": 1,
     "FWC11": 2,
     "FWC12": false,
@@ -24,16 +33,8 @@
     "FWC16": 1,
     "FWC17": 1,
     "FWC18": 2,
-    "FWC19": false,
-    "FWC2": 1,
-    "FWC20": false,
-    "FWC3": 1,
-    "FWC4": false,
-    "FWC5": 1,
-    "FWC6": 1,
-    "FWC7": false,
-    "FWC8": false,
-    "FWC9": 1
+    "FWC19": false
+
   },
   "inventory": "global"
 }
